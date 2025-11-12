@@ -4,29 +4,36 @@ import time
 from image_helper import get_random_image
 
 # -------------------------------
-# 防重觸發設定
+# 全域冷卻設定
 # -------------------------------
-user_last_time = {}
-GLOBAL_COOLDOWN = 1.0  # 秒
+GLOBAL_COOLDOWN = 1.0  # 秒，整個頻道占卜冷卻時間
+last_fortune_time = 0   # 上次占卜時間
 
 # -------------------------------
 # 占卜主程式
 # -------------------------------
 async def fortune_telling(message):
-    user_id = message.author.id
+    global last_fortune_time
     now = time.time()
 
-    # 檢查使用者冷卻
-    if user_id in user_last_time and now - user_last_time[user_id] < GLOBAL_COOLDOWN:
+    # -------------------------------
+    # 全域冷卻檢查
+    # -------------------------------
+    if now - last_fortune_time < GLOBAL_COOLDOWN:
+        # 如果還在冷卻時間內，不回覆
         return
-    user_last_time[user_id] = now
+    last_fortune_time = now
 
+    # -------------------------------
     # 占卜結果機率設定
+    # -------------------------------
     results = ["Greatblessing", "Lucky", "Fine", "Bad", "Worse"]
     weights = [5, 20, 50, 20, 5]
     result = random.choices(results, weights=weights, k=1)[0]
 
+    # -------------------------------
     # 占卜文字結果
+    # -------------------------------
     result_text = {
         "Greatblessing": "🌞 超吉幸運！ 大吉",
         "Lucky": "🍀 好吉了! 吉",
@@ -35,10 +42,14 @@ async def fortune_telling(message):
         "Worse": "💀 緊吉情況! 大凶"
     }
 
+    # -------------------------------
     # 取得隨機圖檔
+    # -------------------------------
     image_file = get_random_image(result)
 
+    # -------------------------------
     # 文字 + 圖片一次回覆
+    # -------------------------------
     if image_file:
         await message.channel.send(
             content=f"🎴 你的占卜結果是：**{result_text[result]}**",
@@ -46,4 +57,5 @@ async def fortune_telling(message):
         )
     else:
         await message.channel.send(f"🎴 你的占卜結果是：**{result_text[result]}**")
+
 
