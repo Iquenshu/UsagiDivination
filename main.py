@@ -1,7 +1,9 @@
 import os
 import discord
+import asyncio
 from keep_alive import keep_alive
 from divination import fortune_telling
+from divination import fortune_telling, reset_daily_count_task
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -10,6 +12,9 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
+ 
+    # 啟動每日重置任務
+    client.loop.create_task(reset_daily_count_task())
 
 @client.event
 async def on_message(message):
@@ -35,4 +40,5 @@ if __name__ == "__main__":
             print("Too many requests — Discord rate limit")
         else:
             raise e
+
 
