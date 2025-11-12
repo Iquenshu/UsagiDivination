@@ -10,7 +10,7 @@ from image_helper import get_random_image
 # -------------------------------
 USER_COOLDOWN = 2.0   # 每個使用者短時間冷卻 (秒)
 DAILY_LIMIT = 3       # 一般使用者每日最大占卜次數
-ADMIN_ROLES = ["管理"]  # 管理身分群名稱
+ADMIN_ROLES = ["BOT測試"]  # BOT測試身分群名稱
 
 # -------------------------------
 # 資料結構
@@ -89,7 +89,7 @@ async def fortune_telling(message):
     # -------------------------------
     # 文字 + 圖片一次回覆
     # -------------------------------
-    count_text = f"(已占卜{current_count}/{DAILY_LIMIT}次)" if not is_admin else "(管理者無限制)"
+    count_text = f"(已占卜{current_count}/{DAILY_LIMIT}次)" if not is_admin else "(BOT測試次數無限制)"
 
     if image_file:
         await message.channel.send(
