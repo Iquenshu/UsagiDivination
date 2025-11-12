@@ -1,19 +1,30 @@
+import threading, time, requests, os
 from flask import Flask
-from threading import Thread
 
-app = Flask(__name__)
+app = Flask('')
 
 @app.route('/')
 def home():
-    return '<h1>🐰 Usagi Bot is awake and running!</h1>'
+    return "<h1>🐰 Usagi Bot is awake and running!</h1>"
 
 def run():
-    # Render 會自動抓 port=8080 作為 service port
-    # 若改為其他 port 將導致健康檢查失敗
     app.run(host='0.0.0.0', port=8080)
 
+def ping_self():
+    while True:
+        try:
+            # Render 自動提供 RENDER_EXTERNAL_URL 環境變數
+            url = os.environ.get("RENDER_EXTERNAL_URL", "https://usagidivination.onrender.com")
+            requests.get(url)
+            print(f"[keep_alive] Pinged {url}")
+        except Exception as e:
+            print(f"[keep_alive] Ping failed: {e}")
+        time.sleep(600)  # 每10分鐘ping一次（Render 休眠門檻是15分鐘）
+
 def keep_alive():
-    """在獨立執行緒啟動 Flask 保活伺服器"""
-    thread = Thread(target=run)
-    thread.daemon = True  # 若主程式結束，不需等待此執行緒
-    thread.start()
+    t1 = threading.Thread(target=run)
+    t2 = threading.Thread(target=ping_self)
+    t1.daemon = True
+    t2.daemon = True
+    t1.start()
+    t2.start()
