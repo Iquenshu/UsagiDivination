@@ -75,8 +75,8 @@ async def fortune_telling(message):
     # -------------------------------
     result_text = {
         "Greatblessing": "🌞 超吉幸運！ 大吉",
-        "Lucky": "🍀 好吉了! 吉",
-        "Fine": "🙂 吉度安穩~ 末吉",
+        "Lucky": "🍀 好吉了!  吉",
+        "Fine": "🙂 吉度安穩~  末吉",
         "Bad": "🌧 壞吉了! 凶",
         "Worse": "💀 緊吉情況! 大凶"
     }
@@ -89,16 +89,16 @@ async def fortune_telling(message):
     # -------------------------------
     # 文字 + 圖片一次回覆
     # -------------------------------
-    count_text = f"(已占卜{current_count}/{DAILY_LIMIT}次)" if not is_admin else "(BOT測試次數無限制)"
+    count_text = f"   (已占卜{current_count}/{DAILY_LIMIT}次)" if not is_admin else "    (BOT測試次數無限制)"
 
     if image_file:
         await message.channel.send(
-            content=f"🎴 你的占卜結果是：**{result_text[result]}** {count_text}",
+            content=f"你的占卜結果是：**{result_text[result]}** {count_text}",
             file=discord.File(image_file)
         )
     else:
         await message.channel.send(
-            f"🎴 你的占卜結果是：**{result_text[result]}** {count_text}"
+            f"你的占卜結果是：**{result_text[result]}** {count_text}"
         )
 
 # -------------------------------
