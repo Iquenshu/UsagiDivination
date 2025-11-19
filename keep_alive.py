@@ -19,7 +19,7 @@ def ping_self():
             print(f"[keep_alive] Pinged {url}")
         except Exception as e:
             print(f"[keep_alive] Ping failed: {e}")
-        time.sleep(600)  # 每10分鐘ping一次（Render 休眠門檻是15分鐘）
+        time.sleep(240)  # 每4分鐘ping一次（Render 休眠門檻是15分鐘）
 
 def keep_alive():
     t1 = threading.Thread(target=run)
@@ -28,3 +28,4 @@ def keep_alive():
     t2.daemon = True
     t1.start()
     t2.start()
+
