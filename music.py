@@ -7,7 +7,7 @@ import os
 FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
 
 # ---------------------------------------
-# yt-dlp 設定 (偽裝成 Android 手機)
+# yt-dlp 設定 (使用 OAuth2 驗證)
 # ---------------------------------------
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -16,22 +16,16 @@ ytdl_format_options = {
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
+    'logtostderr': True,  # 開啟 Log 讓我們看到授權碼
+    'quiet': False,       # 關閉安靜模式，確保訊息顯示
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',
     
-    # ✅ 嘗試讀取 cookies (如果有的話)
-    'cookiefile': 'cookies.txt', 
-    
-    # ✅✅✅ 關鍵修改：強制偽裝成 Android 客戶端，繞過機器人偵測
-    'extractor_args': {
-        'youtube': {
-            'player_client': ['android', 'ios']
-        }
-    },
-    'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36',
+    # ✅✅✅ 關鍵修改：使用 OAuth2 驗證
+    #這會讓 yt-dlp 在第一次執行時，於 Log 顯示一組 Google 驗證碼
+    'username': 'oauth2',
+    'password': '', 
 }
 
 ffmpeg_options = {
@@ -42,23 +36,6 @@ ffmpeg_options = {
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 queues = {}
-
-# --- 除錯用：檢查 Cookies 檔案是否存在 ---
-def debug_cookies():
-    if os.path.exists('cookies.txt'):
-        print("[System] ✅ 發現 cookies.txt 檔案！")
-        # 讀取前幾行確認格式 (不顯示敏感內容)
-        try:
-            with open('cookies.txt', 'r') as f:
-                content = f.read(100)
-                if "youtube.com" in content or "google.com" in content:
-                    print("[System] 檔案內容看起來是正確的 Netscape 格式。")
-                else:
-                    print("[System] ⚠️ 警告：cookies.txt 內容可能不是 Netscape 格式 (請確認是用擴充功能 Export 的)。")
-        except:
-            pass
-    else:
-        print("[System] ❌ 未發現 cookies.txt，將嘗試使用無登入模式 (Android 偽裝)。")
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
@@ -71,9 +48,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def from_url(cls, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
         
-        # 執行除錯檢查
-        debug_cookies()
-
         try:
             # 嘗試下載資訊
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
@@ -88,7 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
 
 # ------------------------------------------------
-# 播放邏輯 (與之前相同)
+# 播放邏輯
 # ------------------------------------------------
 
 def play_next(ctx, bot):
@@ -103,44 +77,36 @@ def play_next(ctx, bot):
             asyncio.run_coroutine_threadsafe(ctx.send(f"🎵 現在播放： **{player.title}**"), bot.loop)
         except Exception as e:
             print(f"播放錯誤: {e}")
-            asyncio.run_coroutine_threadsafe(ctx.send(f"播放發生錯誤: {e}"), bot.loop)
+            asyncio.run_coroutine_threadsafe(ctx.send(f"播放發生錯誤 (請檢查 Log 是否需要驗證): {e}"), bot.loop)
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("✅ 播放清單已空，音樂結束！"), bot.loop)
 
 async def join(ctx):
-    """加入使用者所在的語音頻道 (增強連線版)"""
+    """加入語音頻道 (防呆版)"""
     if not ctx.author.voice:
         await ctx.send("❌ 你必須先加入一個語音頻道！")
         return False
     
     channel = ctx.author.voice.channel
 
-    # 檢查機器人是否已經在頻道中
     if ctx.voice_client is not None:
-        # 如果已經在同一個頻道，直接回傳 True
         if ctx.voice_client.channel.id == channel.id:
             return True
-        # 如果在不同頻道，嘗試移動
         try:
             await ctx.voice_client.move_to(channel)
             return True
-        except Exception as e:
-            await ctx.send(f"❌ 移動頻道失敗: {e}")
+        except:
             return False
     else:
-        # 嘗試連線 (關鍵修改處)
         try:
-            # timeout=60: 延長等待時間到 60 秒
-            # reconnect=True: 允許自動重連
-            # self_deaf=True: 機器人進場自動拒聽 (節省頻寬，提高連線成功率)
+            # 設定較長的 timeout 避免 Render 連線慢
             await channel.connect(timeout=60, reconnect=True, self_deaf=True)
             return True
         except asyncio.TimeoutError:
-            await ctx.send("❌ 連線逾時 (Timeout)。\n請嘗試再次輸入指令，或檢查 Discord 群組的語音伺服器區域。")
+            await ctx.send("❌ 連線逾時，請再試一次。")
             return False
         except Exception as e:
-            await ctx.send(f"❌ 連線發生未知錯誤: {e}")
-            print(f"[Join Error] {e}")
+            await ctx.send(f"❌ 連線錯誤: {e}")
             return False
 
 async def leave(ctx):
@@ -166,15 +132,14 @@ async def play(ctx, url, bot):
     else:
         async with ctx.typing():
             try:
+                # 這裡會觸發下載，如果需要 OAuth2 驗證，Log 會卡住並顯示網址
                 player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
                 ctx.voice_client.play(player, after=lambda e: play_next(ctx, bot))
                 await ctx.send(f"🎵 現在播放： **{player.title}**")
             except Exception as e:
                 error_msg = str(e)
                 if "Sign in" in error_msg:
-                    await ctx.send("❌ YouTube 拒絕存取。嘗試過多請求，IP 暫時被封鎖。")
-                elif "Video unavailable" in error_msg:
-                    await ctx.send("❌ 影片無法播放 (可能版權限制或私人影片)。")
+                    await ctx.send("⚠️ **重要：機器人需要授權！**\n請管理員去 Render 查看 Logs，會有一串 `google.com/device` 的連結和代碼，請點擊並授權。")
                 else:
                     await ctx.send(f"❌ 發生錯誤：{error_msg}")
 
