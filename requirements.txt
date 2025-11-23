@@ -2,5 +2,5 @@ discord.py
 Flask
 aiohttp<4
 requests
-yt-dlp
 PyNaCl
+yt-dlp @ git+https://github.com/yt-dlp/yt-dlp.git@master
