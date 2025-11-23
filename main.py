@@ -1,8 +1,8 @@
 import discord
-import yt_dlp
-import asyncio
-import os
-
+from discord.ext import commands # 必須有這行
+from keep_alive import keep_alive
+from divination import fortune_telling, reset_daily_count_task
+import music # 必須有這行，且 music.py 必須存在
 # 設定 FFmpeg 的路徑
 FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
 
@@ -135,4 +135,5 @@ async def list_queue(ctx):
         await ctx.send(msg)
     else:
         await ctx.send("📭 清單是空的")
+
 
