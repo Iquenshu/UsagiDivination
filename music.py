@@ -3,10 +3,12 @@ import yt_dlp
 import asyncio
 import os
 
-# 設定 FFmpeg 的路徑 (對應 build.sh 下載的位置)
+# 設定 FFmpeg 的路徑
 FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
 
-# yt-dlp 設定
+# ---------------------------------------
+# 更新：加入 cookiefile 與 User Agent
+# ---------------------------------------
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -19,17 +21,19 @@ ytdl_format_options = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',
+    # ✅ 關鍵修改 1: 讀取 Render Secret File 產生的 cookies.txt
+    'cookiefile': 'cookies.txt', 
+    # ✅ 關鍵修改 2: 偽裝成瀏覽器
+    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
 }
 
 ffmpeg_options = {
     'options': '-vn',
-    # 這行確保從上次中斷處重連，減少中斷
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
 }
 
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
-# 播放清單字典 {guild_id: [url1, url2, ...]}
 queues = {}
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -42,17 +46,23 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        
+        # 這裡會嘗試讀取 cookies，如果檔案不存在可能會報錯，但我們會依賴 Render 已建立檔案
+        try:
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        except Exception as e:
+            print(f"下載資訊錯誤 (可能是 Cookies 問題): {e}")
+            raise e
 
         if 'entries' in data:
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
-        # 關鍵：指定 executable 為我們下載的 ffmpeg
         return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
 
+# ... (以下的 play_next, join, leave, play 等函式保持原本的樣子即可，不需要更動) ...
+
 def play_next(ctx, bot):
-    """遞迴函數：播完一首後自動播下一首"""
     if ctx.guild.id in queues and len(queues[ctx.guild.id]) > 0:
         url = queues[ctx.guild.id].pop(0)
         future = asyncio.run_coroutine_threadsafe(
@@ -64,10 +74,9 @@ def play_next(ctx, bot):
             asyncio.run_coroutine_threadsafe(ctx.send(f"🎵 現在播放： **{player.title}**"), bot.loop)
         except Exception as e:
             print(f"播放錯誤: {e}")
+            asyncio.run_coroutine_threadsafe(ctx.send(f"播放發生錯誤: {e}"), bot.loop)
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("✅ 播放清單已空，音樂結束！"), bot.loop)
-
-# --- 指令功能 ---
 
 async def join(ctx):
     if not ctx.author.voice:
@@ -103,11 +112,17 @@ async def play(ctx, url, bot):
     else:
         async with ctx.typing():
             try:
+                # 這裡會使用新的設定 (含 cookies)
                 player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
                 ctx.voice_client.play(player, after=lambda e: play_next(ctx, bot))
                 await ctx.send(f"🎵 現在播放： **{player.title}**")
             except Exception as e:
-                await ctx.send(f"❌ 錯誤：{e}")
+                # 捕捉錯誤並顯示給你看，方便除錯
+                error_msg = str(e)
+                if "Sign in" in error_msg:
+                    await ctx.send(f"❌ YouTube 拒絕存取 (Cookies 可能過期或無效)")
+                else:
+                    await ctx.send(f"❌ 發生錯誤：{error_msg}")
 
 async def skip(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
