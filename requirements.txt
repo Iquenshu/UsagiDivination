@@ -3,7 +3,7 @@ Flask
 aiohttp<4
 requests
 PyNaCl
-imageio-ffmpeg
 yt-dlp
+
 
 
