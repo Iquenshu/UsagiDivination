@@ -6,8 +6,18 @@ import os
 # 設定 FFmpeg 的路徑
 FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
 
+# 🔥🔥🔥 修改這裡開始：設定 Cookie 路徑 -----------------------
+# 預設先找本地的 cookies.txt
+cookie_path = 'cookies.txt'
+# 如果發現 Render 的 Secret File 路徑有檔案，就改用那個路徑
+if os.path.exists('/etc/secrets/cookies.txt'):
+    cookie_path = '/etc/secrets/cookies.txt'
+
+print(f"正在使用的 Cookie 路徑: {cookie_path}")
+# -----------------------------------------------------------
+
 # ---------------------------------------
-# yt-dlp 設定 (使用 OAuth2 驗證)
+# yt-dlp 設定
 # ---------------------------------------
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -16,16 +26,15 @@ ytdl_format_options = {
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': False,
-    'logtostderr': True,  # 開啟 Log 讓我們看到授權碼
-    'quiet': False,       # 關閉安靜模式，確保訊息顯示
+    'logtostderr': True,
+    'quiet': False,
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',
     
-    # ✅✅✅ 關鍵修改：使用 OAuth2 驗證
-    #這會讓 yt-dlp 在第一次執行時，於 Log 顯示一組 Google 驗證碼
-    'username': 'oauth2',
-    'password': '', 
+    # 🔥🔥🔥 修改這裡：移除舊的 oauth2，加入 cookiefile
+    'cookiefile': cookie_path, 
+    # 原本的 'username': 'oauth2' 和 'password': '' 都要刪掉
 }
 
 ffmpeg_options = {
@@ -53,6 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
         except Exception as e:
             print(f"❌ 下載失敗: {e}")
+            # 這裡把錯誤丟出去，讓外層 play 函數捕獲
             raise e
 
         if 'entries' in data:
@@ -77,7 +87,7 @@ def play_next(ctx, bot):
             asyncio.run_coroutine_threadsafe(ctx.send(f"🎵 現在播放： **{player.title}**"), bot.loop)
         except Exception as e:
             print(f"播放錯誤: {e}")
-            asyncio.run_coroutine_threadsafe(ctx.send(f"播放發生錯誤 (請檢查 Log 是否需要驗證): {e}"), bot.loop)
+            asyncio.run_coroutine_threadsafe(ctx.send(f"播放發生錯誤: {e}"), bot.loop)
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("✅ 播放清單已空，音樂結束！"), bot.loop)
 
@@ -132,16 +142,14 @@ async def play(ctx, url, bot):
     else:
         async with ctx.typing():
             try:
-                # 這裡會觸發下載，如果需要 OAuth2 驗證，Log 會卡住並顯示網址
+                # 這裡會觸發下載
                 player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
                 ctx.voice_client.play(player, after=lambda e: play_next(ctx, bot))
                 await ctx.send(f"🎵 現在播放： **{player.title}**")
             except Exception as e:
                 error_msg = str(e)
-                if "Sign in" in error_msg:
-                    await ctx.send("⚠️ **重要：機器人需要授權！**\n請管理員去 Render 查看 Logs，會有一串 `google.com/device` 的連結和代碼，請點擊並授權。")
-                else:
-                    await ctx.send(f"❌ 發生錯誤：{error_msg}")
+                # 移除了原本關於 OAuth2 登入的提示，因為現在是改用 Cookie
+                await ctx.send(f"❌ 發生錯誤，可能因為版權或 Cookie 失效：{error_msg}")
 
 async def skip(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
