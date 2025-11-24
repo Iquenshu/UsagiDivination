@@ -4,7 +4,7 @@ import asyncio
 import os
 
 # 設定 FFmpeg 的路徑
-FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
+# FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
 
 # 🔥🔥🔥 修改這裡開始：設定 Cookie 路徑 -----------------------
 # 預設先找本地的 cookies.txt
