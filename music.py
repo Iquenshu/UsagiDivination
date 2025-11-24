@@ -2,15 +2,15 @@ import discord
 import yt_dlp
 import asyncio
 import os
-import imageio_ffmpeg  # <--- 新增這個 import
+# import imageio_ffmpeg  <--- 這行可以刪掉了，我們不再用它
 
 # ---------------------------------------
-# 設定 FFmpeg 路徑 (使用 imageio-ffmpeg 套件提供的路徑)
+# 設定 FFmpeg 路徑 (指向我們 build.sh 下載的檔案)
 # ---------------------------------------
-# 這行必須放在所有函數外面，作為全域變數
-FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+# 直接指定目前目錄下的 ffmpeg 檔案
+FFMPEG_PATH = './ffmpeg'
 
-print(f"✅ 成功取得 FFmpeg 路徑: {FFMPEG_PATH}")
+print(f"使用的 FFmpeg 路徑: {FFMPEG_PATH}")
 
 # ---------------------------------------
 # 設定 Cookie 路徑 (Render 專用)
@@ -18,7 +18,6 @@ print(f"✅ 成功取得 FFmpeg 路徑: {FFMPEG_PATH}")
 cookie_path = 'cookies.txt'
 if os.path.exists('/etc/secrets/cookies.txt'):
     cookie_path = '/etc/secrets/cookies.txt'
-
 # ... (下面接原本的 ytdl_format_
 print(f"正在使用的 Cookie 路徑: {cookie_path}")
 # -----------------------------------------------------------
