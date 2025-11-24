@@ -5,6 +5,14 @@ import os
 
 # 設定 FFmpeg 的路徑
 # FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
+import shutil
+
+# 讓系統自己去找 ffmpeg 在哪裡
+FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
+
+print(f"使用的 FFmpeg 路徑: {FFMPEG_PATH}")
+
+
 
 # 🔥🔥🔥 修改這裡開始：設定 Cookie 路徑 -----------------------
 # 預設先找本地的 cookies.txt
