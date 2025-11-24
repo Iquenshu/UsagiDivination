@@ -2,25 +2,24 @@ import discord
 import yt_dlp
 import asyncio
 import os
+import imageio_ffmpeg  # <--- 新增這個 import
 
-# 設定 FFmpeg 的路徑
-# FFMPEG_PATH = './ffmpeg' if os.path.exists('./ffmpeg') else 'ffmpeg'
-import shutil
+# ---------------------------------------
+# 設定 FFmpeg 路徑 (使用 imageio-ffmpeg 套件提供的路徑)
+# ---------------------------------------
+# 這行必須放在所有函數外面，作為全域變數
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
-# 讓系統自己去找 ffmpeg 在哪裡
-FFMPEG_PATH = shutil.which("ffmpeg") or "ffmpeg"
+print(f"✅ 成功取得 FFmpeg 路徑: {FFMPEG_PATH}")
 
-print(f"使用的 FFmpeg 路徑: {FFMPEG_PATH}")
-
-
-
-# 🔥🔥🔥 修改這裡開始：設定 Cookie 路徑 -----------------------
-# 預設先找本地的 cookies.txt
+# ---------------------------------------
+# 設定 Cookie 路徑 (Render 專用)
+# ---------------------------------------
 cookie_path = 'cookies.txt'
-# 如果發現 Render 的 Secret File 路徑有檔案，就改用那個路徑
 if os.path.exists('/etc/secrets/cookies.txt'):
     cookie_path = '/etc/secrets/cookies.txt'
 
+# ... (下面接原本的 ytdl_format_
 print(f"正在使用的 Cookie 路徑: {cookie_path}")
 # -----------------------------------------------------------
 
