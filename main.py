@@ -5,8 +5,6 @@ from discord.ext import commands
 from keep_alive import keep_alive
 # 引用原本的占卜功能
 from divination import fortune_telling, reset_daily_count_task
-# 引用新的音樂功能
-import music
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,60 +18,35 @@ async def on_ready():
     # 啟動每日重置任務
     bot.loop.create_task(reset_daily_count_task())
 
-# -----------------
-# 音樂指令區 (直接呼叫 music.py)
-# -----------------
-@bot.command()
-async def join(ctx):
-    """讓機器人加入語音頻道"""
-    await music.join(ctx)
-
-@bot.command()
-async def leave(ctx):
-    """讓機器人離開"""
-    await music.leave(ctx)
-
-@bot.command()
-async def play(ctx, url: str):
-    """播放音樂： $play <Youtube網址>"""
-    # 這裡把 bot 傳進去，因為 music.py 需要用到 bot.loop
-    await music.play(ctx, url, bot)
-
-@bot.command()
-async def skip(ctx):
-    """跳過目前歌曲"""
-    await music.skip(ctx)
-
-@bot.command(name="list")
-async def queue_list(ctx):
-    """查看播放清單"""
-    await music.list_queue(ctx)
-
-# -----------------
-# 保留原本的文字觸發與占卜
-# -----------------
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
 
-    # 舊的占卜觸發方式
+    # 占卜觸發
     if message.content == "吉占卜":
         await fortune_telling(message)
 
-    # 這一行非常重要！沒有這行，上面的 $play 指令會失效
+    # 測試指令
+    elif message.content.startswith('$hello'):
+        await message.channel.send('Hello!')
+
     await bot.process_commands(message)
 
 if __name__ == "__main__":
     try:
         token = os.getenv("TOKEN")
         if not token:
-            raise Exception("Please add your token to the Secrets pane.")
-        keep_alive()
-        bot.run(token)
+            print("錯誤：找不到 TOKEN，請檢查 Render 環境變數。")
+        else:
+            keep_alive()  # 啟動網頁伺服器保持在線
+            bot.run(token)
     except discord.HTTPException as e:
         if e.status == 429:
-            print("Too many requests — Discord rate limit")
+            print("🚨 嚴重錯誤：Discord Rate Limit (請求次數過多)")
+            print("請停止部署，等待 1~2 小時後再試。")
+            # 讓程式暫停，避免 Render 一直重啟導致封鎖時間加長
+            import time
+            time.sleep(3600) 
         else:
             raise e
-
