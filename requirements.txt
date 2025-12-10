@@ -2,8 +2,6 @@ discord.py
 Flask
 aiohttp<4
 requests
-PyNaCl
-yt-dlp
 
 
 
