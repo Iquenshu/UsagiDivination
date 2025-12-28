@@ -67,7 +67,7 @@ async def fortune_telling(message):
     # 占卜結果機率設定
     # -------------------------------
     results = ["Greatblessing", "Lucky", "Fine", "Bad", "Worse"]
-    weights = [5, 20, 50, 20, 5]
+    weights = [10, 20, 40, 20, 10]
     result = random.choices(results, weights=weights, k=1)[0]
 
     # -------------------------------
