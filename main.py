@@ -39,18 +39,18 @@ async def on_message(message):
 # ❌ 移除所有 @bot.command() async def play/join/leave ... 等音樂指令
 
 if __name__ == "__main__":
-    try:
-        token = os.getenv("TOKEN")
-        if not token:
-            print("錯誤：找不到 TOKEN，請檢查 Render 環境變數。")
-        else:
-            keep_alive()
+    token = os.getenv("TOKEN")
+    if not token:
+        print("錯誤：找不到 TOKEN，請檢查 Render 環境變數。")
+    else:
+        keep_alive()
+        try:
             bot.run(token)
-    except discord.HTTPException as e:
-        if e.status == 429:
-            print("🚨 嚴重錯誤：Discord Rate Limit (請求次數過多)")
-            print("請停止部署，等待 1 小時後再試。")
-            import time
-            time.sleep(3600) 
-        else:
-            raise e
+        except discord.HTTPException as e:
+            if e.status == 429:
+                print("🚨 嚴重錯誤：Discord Rate Limit (請求次數過多)")
+                # 直接拋出異常，讓程式結束。不要 sleep，也不要吞掉錯誤。
+                # 這樣 Render 才會知道 Service 已經掛了。
+                raise e 
+            else:
+                raise e
