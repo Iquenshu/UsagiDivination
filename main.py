@@ -2,7 +2,6 @@ import os
 import discord
 import asyncio
 from discord.ext import commands
-from keep_alive import keep_alive
 # 引用原本的占卜功能
 from divination import fortune_telling, reset_daily_count_task
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     if not token:
         print("錯誤：找不到 TOKEN，請檢查 Render 環境變數。")
     else:
-        keep_alive()
+       
         try:
             bot.run(token)
         except discord.HTTPException as e:
