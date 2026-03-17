@@ -2,10 +2,13 @@ import os
 import discord
 import asyncio
 from discord.ext import commands
+from dotenv import load_dotenv  # 新增：用來讀取 .env 檔案
+
+# 讀取 .env 檔案裡面的 TOKEN
+load_dotenv()
+
 # 引用原本的占卜功能
 from divination import fortune_telling, reset_daily_count_task
-
-# ❌ 移除這行: import music
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -35,21 +38,18 @@ async def on_message(message):
     # 這行保留，確保指令擴充性
     await bot.process_commands(message)
 
-# ❌ 移除所有 @bot.command() async def play/join/leave ... 等音樂指令
 
 if __name__ == "__main__":
     token = os.getenv("TOKEN")
     if not token:
-        print("錯誤：找不到 TOKEN，請檢查 Render 環境變數。")
+        print("錯誤：找不到 TOKEN，請檢查 .env 檔案設定。")
     else:
-       
+        # 注意：這裡已經拿掉了 keep_alive()，因為 NSSM 會負責背景運行
         try:
             bot.run(token)
         except discord.HTTPException as e:
             if e.status == 429:
                 print("🚨 嚴重錯誤：Discord Rate Limit (請求次數過多)")
-                # 直接拋出異常，讓程式結束。不要 sleep，也不要吞掉錯誤。
-                # 這樣 Render 才會知道 Service 已經掛了。
                 raise e 
             else:
                 raise e
