@@ -27,6 +27,10 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    # >>> 新增這兩行：如果頻道名稱不是「測試」，就直接忽略這則訊息 <<<
+    if message.channel.name != "測試":
+        return
+
     # 占卜觸發
     if message.content == "吉占卜":
         await fortune_telling(message)
