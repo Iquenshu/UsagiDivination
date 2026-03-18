@@ -27,8 +27,11 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # >>> 新增這兩行：如果頻道名稱不是「測試」，就直接忽略這則訊息 <<<
-    if message.channel.name != "測試":
+    # >>> 修改這裡：設定一個「允許運作」的頻道清單 <<<
+    allowed_channels = ["一般", "測試"]
+
+    # 如果頻道名稱「不在」允許的清單內，就直接忽略
+    if message.channel.name not in allowed_channels:
         return
 
     # 占卜觸發
