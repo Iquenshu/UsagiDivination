@@ -3,6 +3,7 @@ import sys
 import subprocess
 import discord
 import asyncio
+import ranking
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -112,17 +113,24 @@ async def on_message(message):
     if message.content == "吉占卜":
         await fortune_telling(message)
 
-    # 📊 新增：個人統計查詢指令
+    # 📊 個人統計查詢指令 (順便顯示他的總積分)
     elif message.content == "$統計":
         stats = database.get_user_stats(message.author.id)
         if not stats:
             await message.channel.send(f"{message.author.mention} 你還沒有抽過吉占卜喔！趕快來試試手氣吧！")
             return
             
-        # 計算機率並排版輸出
         t = stats['total']
+        # 動態計算個人總分
+        my_score = (stats['great'] * ranking.SCORE_MAP['great'] + 
+                    stats['lucky'] * ranking.SCORE_MAP['lucky'] + 
+                    stats['fine'] * ranking.SCORE_MAP['fine'] + 
+                    stats['bad'] * ranking.SCORE_MAP['bad'] + 
+                    stats['worse'] * ranking.SCORE_MAP['worse'])
+
         msg = (
             f"📊 **{stats['name']} 的吉占卜生涯統計** 📊\n"
+            f"🎯 累積幸運積分: **{my_score}** 分\n"
             f"總共占卜了 **{t}** 次\n"
             f"✨ 大吉: {stats['great']} 次 ({stats['great']/t*100:.1f}%)\n"
             f"🍀 吉: {stats['lucky']} 次 ({stats['lucky']/t*100:.1f}%)\n"
@@ -133,15 +141,39 @@ async def on_message(message):
         await message.channel.send(msg)
 
     # 🏆 新增：排行榜查詢指令
-    elif message.content == "$排行":
-        top_users = database.get_top_users(5) # 取前 5 名
-        if not top_users:
-            await message.channel.send("目前還沒有任何人留下占卜紀錄！")
-            return
-            
-        msg = "🏆 **吉占卜狂熱者排行榜 TOP 5** 🏆\n"
-        for i, user in enumerate(top_users):
-            msg += f"第 {i+1} 名：**{user[0]}** (共抽了 {user[1]} 次)\n"
+    elif message.content == "$幸運榜":
+        # 1. 取得幸運分數排行榜 (前3名)
+        top_scores = ranking.get_lucky_leaderboard(3)
+        # 2. 取得本月最幸運 (大吉+吉)
+        luckiest_month = ranking.get_monthly_luckiest()
+        # 3. 取得本月最倒楣 (大凶+凶)
+        unluckiest_month = ranking.get_monthly_unluckiest()
+
+        msg = "🏆 **吉占卜風雲榜** 🏆\n\n"
+        
+        msg += "🌟 **【幸運總積分 TOP 3】** 🌟\n"
+        if not top_scores:
+            msg += "目前尚無資料\n"
+        else:
+            for i, user in enumerate(top_scores):
+                msg += f"第 {i+1} 名：**{user['name']}** (積分: {user['score']} 分)\n"
+                
+        msg += "\n🌞 **【本月最幸運】** (本月大吉+吉最多次)\n"
+        if luckiest_month:
+            # 解析回傳的 4 個數值：名稱, 大吉次數, 吉次數, 加總次數
+            name, great, lucky, total = luckiest_month
+            msg += f"🎉 **{name}** (本月共抽中 ✨大吉 {great}次    🍀 吉 {lucky}次)\n"
+        else:
+            msg += "本月還沒有人抽到大吉或吉呢！\n"
+
+        msg += "\n💀 **【本月最倒楣】** (本月大凶+凶最多次)\n"
+        if unluckiest_month:
+            # 解析回傳的 4 個數值：名稱, 大凶次數, 凶次數, 加總次數
+            name, worse, bad, total = unluckiest_month
+            msg += f"🌧️ **{name}** (本月共抽中 💀大凶 {worse}次    🌧️ 凶 {bad}次)\n"
+        else:
+            msg += "本月大家都很平安，沒有人抽到大凶或凶！\n"
+
         await message.channel.send(msg)
 
     elif message.content.startswith('$hello'):
