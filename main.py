@@ -148,8 +148,8 @@ async def on_message(message):
         luckiest_month = ranking.get_monthly_luckiest()
         # 3. 取得本月最倒楣 (大凶+凶)
         unluckiest_month = ranking.get_monthly_unluckiest()
-               
-        msg += "🌟 **【幸運總積分 TOP 3】** 🌟\n"
+        
+        msg = "🌟 **【幸運總積分 TOP 3】** 🌟\n"
         if not top_scores:
             msg += "目前尚無資料\n"
         else:
