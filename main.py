@@ -6,6 +6,9 @@ import asyncio
 from discord.ext import commands
 from dotenv import load_dotenv
 
+# 新增資料庫模組
+import database
+
 # 讀取 .env 檔案
 load_dotenv()
 
@@ -37,6 +40,9 @@ def get_git_commit():
 # ==========================================
 @bot.event
 async def on_ready():
+    # 開機時自動檢查並建立資料庫與表格
+    database.init_db()
+    
     print(f'We have logged in as {bot.user}')
     bot.loop.create_task(reset_daily_count_task())
     
@@ -105,6 +111,38 @@ async def on_message(message):
     # 占卜觸發
     if message.content == "吉占卜":
         await fortune_telling(message)
+
+    # 📊 新增：個人統計查詢指令
+    elif message.content == "$統計":
+        stats = database.get_user_stats(message.author.id)
+        if not stats:
+            await message.channel.send(f"{message.author.mention} 你還沒有抽過吉占卜喔！趕快來試試手氣吧！")
+            return
+            
+        # 計算機率並排版輸出
+        t = stats['total']
+        msg = (
+            f"📊 **{stats['name']} 的吉占卜生涯統計** 📊\n"
+            f"總共占卜了 **{t}** 次\n"
+            f"✨ 大吉: {stats['great']} 次 ({stats['great']/t*100:.1f}%)\n"
+            f"🍀 吉: {stats['lucky']} 次 ({stats['lucky']/t*100:.1f}%)\n"
+            f"👌 末吉: {stats['fine']} 次 ({stats['fine']/t*100:.1f}%)\n"
+            f"🌧️ 凶: {stats['bad']} 次 ({stats['bad']/t*100:.1f}%)\n"
+            f"💀 大凶: {stats['worse']} 次 ({stats['worse']/t*100:.1f}%)"
+        )
+        await message.channel.send(msg)
+
+    # 🏆 新增：排行榜查詢指令
+    elif message.content == "$排行":
+        top_users = database.get_top_users(5) # 取前 5 名
+        if not top_users:
+            await message.channel.send("目前還沒有任何人留下占卜紀錄！")
+            return
+            
+        msg = "🏆 **吉占卜狂熱者排行榜 TOP 5** 🏆\n"
+        for i, user in enumerate(top_users):
+            msg += f"第 {i+1} 名：**{user[0]}** (共抽了 {user[1]} 次)\n"
+        await message.channel.send(msg)
 
     elif message.content.startswith('$hello'):
         await message.channel.send('Hello!')
