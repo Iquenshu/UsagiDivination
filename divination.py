@@ -5,6 +5,9 @@ import datetime
 import asyncio
 from image_helper import get_random_image
 
+# 引入資料庫模組
+import database
+
 # -------------------------------
 # 設定
 # -------------------------------
@@ -69,6 +72,9 @@ async def fortune_telling(message):
     results = ["Greatblessing", "Lucky", "Fine", "Bad", "Worse"]
     weights = [10, 20, 40, 20, 10]
     result = random.choices(results, weights=weights, k=1)[0]
+
+    # >>> 記錄這次占卜結果到資料庫 <<<
+    database.record_draw(message.author.id, message.author.display_name, result)
 
     # -------------------------------
     # 占卜文字結果
